@@ -1,0 +1,67 @@
+D:\courses\my\QA\project\be\qa-4-free-be\src\auth\auth.module.ts:
+import { Module, forwardRef } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtStrategy } from './jwt.strategy';
+import { PassportModule } from '@nestjs/passport';
+import { AuthService } from './auth.service';
+import { UserModule } from '../user/user.module'; // Импортираме UserModule
+import { JwtAuthGuard } from './jwt-auth.guard';
+
+@Module({
+  imports: [
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: { expiresIn: '1h' },
+      }),
+    }),
+    forwardRef(() => UserModule), // Решаваме цикличната зависимост
+  ],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard],
+  exports: [AuthService, JwtAuthGuard, JwtModule],
+})
+export class AuthModule {}
+
+
+
+D:\courses\my\QA\project\be\qa-4-free-be\src\auth\auth.service.ts:
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { UserService } from '../user/user.service';
+import { RabbitMQProvider } from '../common/providers/rabbitmq.provider';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private readonly jwtService: JwtService,
+    @Inject(forwardRef(() => UserService)) // Решаваме цикличната зависимост
+    private readonly userService: UserService,
+    private readonly rabbitMQProvider: RabbitMQProvider, // ✅ Инжектираме RabbitMQ
+  ) {}
+
+  async validateUser(username: string, password: string) {
+    const user = await this.userService.getUserByUsername(username);
+    if (user && user.password === password) {
+      return user;
+    }
+    return null;
+  }
+
+  async login(user: any) {
+    const payload = { username: user.username, sub: user.id };
+    const token = this.jwtService.sign(payload);
+
+    // ✅ Изпращаме евент за логване в RabbitMQ
+    await this.rabbitMQProvider.sendMessage('user_logged_in', {
+      userId: user.id,
+      username: user.username,
+      timestamp: new Date().toISOString(),
+    });
+
+    return { access_token: token };
+  }
+}
