@@ -9,11 +9,13 @@ const promptFilePath = path.join(rootDir, 'prompt.txt');
 // Опции за изпълнение
 interface Options {
   removeComments: boolean;
+  rootFolder: string | null; // За филтриране на път до ROOT папката
 }
 
 // Глобални опции със стойности по подразбиране
 const options: Options = {
   removeComments: true,
+  rootFolder: null,
 };
 
 /**
@@ -82,7 +84,7 @@ function removeYamlComments(content: string): string {
 /**
  * Премахва коментарите от JSON файл
  * Note: Стандартният JSON не поддържа коментари, но някои
- * разширения на JSON позволяват коментари като // и многоредови комментари
+ * разширения на JSON позволяват коментари като // и многоредови коментари
  * @param content - съдържание на файла
  * @returns съдържание без коментари
  */
@@ -219,14 +221,62 @@ function removeComments(content: string, fileType: string): string {
 }
 
 /**
+ * Обработва път към файл, за да покаже само частта след ROOT папката
+ * @param filePath - пълният път към файла
+ * @returns относителният път след ROOT папката или оригиналния път ако ROOT папката не е намерена
+ */
+function processFilePath(filePath: string): string {
+  // Ако няма зададена ROOT папка, връща оригиналния път
+  if (!options.rootFolder) {
+    return filePath;
+  }
+  
+  // Нормализираме пътищата, за да работим с унифициран формат, без значение дали е Windows или Unix
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  const normalizedRootFolder = options.rootFolder.replace(/\\/g, '/');
+  
+  // Търсим позицията на ROOT папката в пътя
+  const rootFolderIndex = normalizedPath.indexOf(normalizedRootFolder);
+  
+  if (rootFolderIndex === -1) {
+    // Ако ROOT папката не е намерена в пътя, връщаме оригиналния път
+    console.warn(`ROOT папката '${options.rootFolder}' не е намерена в път '${filePath}'`);
+    return filePath;
+  }
+  
+  // Изчисляваме началото на относителния път (след ROOT папката)
+  const startRelativePath = rootFolderIndex + normalizedRootFolder.length + 1; // +1 за / или \ след папката
+  
+  // Извличаме относителния път
+  const relativePath = normalizedPath.slice(startRelativePath);
+  
+  return relativePath;
+}
+
+/**
  * Парсира аргументите от командния ред
  */
 function parseCommandLineArgs() {
   const args = process.argv.slice(2);
-  for (const arg of args) {
+  
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    
     if (arg === '--keep-comments') {
       options.removeComments = false;
+    } 
+    else if (arg === '--root-folder' && i + 1 < args.length) {
+      options.rootFolder = args[i + 1];
+      i++; // Пропускаме следващия аргумент, тъй като го използвахме като стойност
     }
+    else if (arg.startsWith('--root-folder=')) {
+      options.rootFolder = arg.split('=')[1];
+    }
+  }
+  
+  // Проверка дали ROOT папката съществува
+  if (options.rootFolder && options.rootFolder.trim() !== '') {
+    console.log(`ROOT папка зададена на: '${options.rootFolder}'`);
   }
 }
 
@@ -270,10 +320,13 @@ async function main() {
         // Премахва коментарите според типа на файла
         const processedContent = removeComments(fileContent, fileType);
         
-        combinedContent += `\n${filePath}:\n`;
+        // Обработва пътя според настройката за ROOT папка
+        const displayPath = processFilePath(filePath);
+        
+        combinedContent += `\n${displayPath}:\n`;
         combinedContent += processedContent;
         combinedContent += '\n\n';
-        console.log(`Добавен файл: ${filePath} (тип: ${fileType})`);
+        console.log(`Добавен файл: ${displayPath} (тип: ${fileType})`);
       } else {
         console.warn(`Пропуснат файл (не съществува): ${filePath}`);
       }
