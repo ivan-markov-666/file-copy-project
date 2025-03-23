@@ -1,2 +1,3 @@
 D:\courses\my\QA\project\be\qa-4-free-be\src\auth\auth.module.ts
 D:\courses\my\QA\project\be\qa-4-free-be\src\auth\auth.service.ts
+D:\courses\my\QA\project\be\qa-4-free-be\src\common\common.module.ts

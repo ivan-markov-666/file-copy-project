@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "start": "ts-node src/index.ts",
-    "copy-files": "ts-node src/index.ts"
+    "copy-files": "ts-node src/index.ts",
+    "copy-files:keep-comments": "ts-node src/index.ts --keep-comments"
   },
   "keywords": ["file", "copy", "typescript"],
   "author": "",
