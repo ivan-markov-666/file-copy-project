@@ -6,6 +6,16 @@ const rootDir = process.cwd();
 const filesListPath = path.join(rootDir, 'files-list.txt');
 const promptFilePath = path.join(rootDir, 'prompt.txt');
 
+// Опции за изпълнение
+interface Options {
+  removeComments: boolean;
+}
+
+// Глобални опции със стойности по подразбиране
+const options: Options = {
+  removeComments: true,
+};
+
 /**
  * Чете съдържанието на файл
  * @param filePath - път към файла
@@ -21,10 +31,213 @@ function readFileContent(filePath: string): string {
 }
 
 /**
+ * Определя типа на файла по неговото разширение
+ * @param filePath - път към файла
+ * @returns тип на файла
+ */
+function getFileType(filePath: string): 'typescript' | 'json' | 'yaml' | 'unknown' {
+  const extension = path.extname(filePath).toLowerCase();
+  
+  if (['.ts', '.tsx', '.js', '.jsx'].includes(extension)) {
+    return 'typescript';
+  } else if (extension === '.json') {
+    return 'json';
+  } else if (['.yml', '.yaml'].includes(extension)) {
+    return 'yaml';
+  } else {
+    return 'unknown';
+  }
+}
+
+/**
+ * Премахва коментарите от YAML файл
+ * @param content - съдържание на файла
+ * @returns съдържание без коментари
+ */
+function removeYamlComments(content: string): string {
+  // Премахва редовете, които започват с '#'
+  const lines = content.split('\n');
+  const filteredLines = lines.map(line => {
+    const commentIndex = line.indexOf('#');
+    // Ако има '#' и не е част от стринг, премахваме коментара
+    if (commentIndex !== -1) {
+      // Проверка дали '#' не е част от стринг
+      const quoteParts = line.slice(0, commentIndex).split('"');
+      const singleQuoteParts = line.slice(0, commentIndex).split("'");
+      
+      // Ако броят на кавичките преди '#' е четен, '#' не е част от стринг
+      if (
+        quoteParts.length % 2 === 1 && 
+        singleQuoteParts.length % 2 === 1
+      ) {
+        return line.slice(0, commentIndex).trimEnd();
+      }
+    }
+    return line;
+  });
+  
+  return filteredLines.join('\n');
+}
+
+/**
+ * Премахва коментарите от JSON файл
+ * Note: Стандартният JSON не поддържа коментари, но някои
+ * разширения на JSON позволяват коментари като // и многоредови комментари
+ * @param content - съдържание на файла
+ * @returns съдържание без коментари
+ */
+function removeJsonComments(content: string): string {
+  // Премахва стандартните JavaScript коментари
+  // Това е опростена имплементация, която може да има ограничения
+  return removeTypeScriptComments(content);
+}
+
+/**
+ * Премахва коментарите от TypeScript/JavaScript файл
+ * Работи с едноредови (//), многоредови коментари
+ * и избягва случаите, когато // е част от URL в стринг
+ * @param content - съдържание на файла
+ * @returns съдържание без коментари
+ */
+function removeTypeScriptComments(content: string): string {
+  const result: string[] = [];
+  let inSingleLineComment = false;
+  let inMultiLineComment = false;
+  let inSingleQuoteString = false;
+  let inDoubleQuoteString = false;
+  let inTemplateString = false;
+  let escape = false;
+  
+  const lines = content.split('\n');
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let processedLine = '';
+    
+    for (let j = 0; j < line.length; j++) {
+      const char = line[j];
+      const nextChar = j + 1 < line.length ? line[j + 1] : '';
+      
+      // Обработка на escape символи
+      if (escape) {
+        escape = false;
+        processedLine += char;
+        continue;
+      }
+      
+      if (char === '\\' && (inSingleQuoteString || inDoubleQuoteString || inTemplateString)) {
+        escape = true;
+        processedLine += char;
+        continue;
+      }
+      
+      // Обработка на стрингове
+      if (!inSingleLineComment && !inMultiLineComment) {
+        if (char === "'" && !inDoubleQuoteString && !inTemplateString) {
+          inSingleQuoteString = !inSingleQuoteString;
+          processedLine += char;
+          continue;
+        }
+        
+        if (char === '"' && !inSingleQuoteString && !inTemplateString) {
+          inDoubleQuoteString = !inDoubleQuoteString;
+          processedLine += char;
+          continue;
+        }
+        
+        if (char === '`' && !inSingleQuoteString && !inDoubleQuoteString) {
+          inTemplateString = !inTemplateString;
+          processedLine += char;
+          continue;
+        }
+      }
+      
+      // Ако сме в стринг, добавяме символа без промяна
+      if (inSingleQuoteString || inDoubleQuoteString || inTemplateString) {
+        processedLine += char;
+        continue;
+      }
+      
+      // Обработка на коментари
+      if (!inSingleLineComment && !inMultiLineComment) {
+        if (char === '/' && nextChar === '/') {
+          inSingleLineComment = true;
+          j++; // Пропускаме следващия символ
+          continue;
+        }
+        
+        if (char === '/' && nextChar === '*') {
+          inMultiLineComment = true;
+          j++; // Пропускаме следващия символ
+          continue;
+        }
+      } else if (inMultiLineComment && char === '*' && nextChar === '/') {
+        inMultiLineComment = false;
+        j++; // Пропускаме следващия символ
+        continue;
+      }
+      
+      // Добавяме символа само ако не сме в коментар
+      if (!inSingleLineComment && !inMultiLineComment) {
+        processedLine += char;
+      }
+    }
+    
+    // Нов ред, едноредовият коментар приключва
+    inSingleLineComment = false;
+    
+    // Добавяме обработения ред към резултата, ако не е празен или ако е в многоредов коментар
+    if (!inMultiLineComment || processedLine.trim() !== '') {
+      result.push(processedLine);
+    }
+  }
+  
+  return result.join('\n');
+}
+
+/**
+ * Премахва коментарите от файл според неговия тип
+ * @param content - съдържание на файла
+ * @param fileType - тип на файла
+ * @returns съдържание без коментари
+ */
+function removeComments(content: string, fileType: string): string {
+  if (!options.removeComments) {
+    return content;
+  }
+  
+  switch (fileType) {
+    case 'typescript':
+      return removeTypeScriptComments(content);
+    case 'json':
+      return removeJsonComments(content);
+    case 'yaml':
+      return removeYamlComments(content);
+    default:
+      return content; // За неизвестни типове файлове, запазваме съдържанието непроменено
+  }
+}
+
+/**
+ * Парсира аргументите от командния ред
+ */
+function parseCommandLineArgs() {
+  const args = process.argv.slice(2);
+  for (const arg of args) {
+    if (arg === '--keep-comments') {
+      options.removeComments = false;
+    }
+  }
+}
+
+/**
  * Основна функция на програмата
  */
 async function main() {
   try {
+    // Парсираме аргументите от командния ред
+    parseCommandLineArgs();
+    
     // Проверка дали съществува files-list.txt
     if (!fs.existsSync(filesListPath)) {
       console.error('Файлът files-list.txt не е намерен в директорията на проекта!');
@@ -38,6 +251,7 @@ async function main() {
       .filter(line => line && !line.startsWith('#')); // Премахва празни редове и коментари
 
     console.log(`Намерени ${filesList.length} файла за обработка.`);
+    console.log(`Премахване на коментари: ${options.removeComments ? 'Да' : 'Не'}`);
 
     // Изчиства или създава prompt.txt
     fs.writeFileSync(promptFilePath, '');
@@ -50,11 +264,16 @@ async function main() {
         : path.join(rootDir, filePath);
       
       if (fs.existsSync(absolutePath)) {
-        const content = readFileContent(absolutePath);
+        const fileContent = readFileContent(absolutePath);
+        const fileType = getFileType(absolutePath);
+        
+        // Премахва коментарите според типа на файла
+        const processedContent = removeComments(fileContent, fileType);
+        
         combinedContent += `\n${filePath}:\n`;
-        combinedContent += content;
+        combinedContent += processedContent;
         combinedContent += '\n\n';
-        console.log(`Добавен файл: ${filePath}`);
+        console.log(`Добавен файл: ${filePath} (тип: ${fileType})`);
       } else {
         console.warn(`Пропуснат файл (не съществува): ${filePath}`);
       }
