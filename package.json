@@ -8,7 +8,9 @@
     "copy-files": "ts-node src/index.ts",
     "copy-files:keep-comments": "ts-node src/index.ts --keep-comments",
     "copy-files:with-root": "ts-node src/index.ts --root-folder",
-    "copy-files:qa": "ts-node src/index.ts --root-folder=qa-4-free-be"
+    "copy-files:qa": "ts-node src/index.ts --root-folder=qa-4-free-be",
+    "copy-files:list": "ts-node src/index.ts --files-list",
+    "copy-files:be": "ts-node src/index.ts --root-folder=qa-4-free-be --files-list=be-files-list.txt --output-file=be-prompt.txt"
   },
   "keywords": ["file", "copy", "typescript"],
   "author": "",
