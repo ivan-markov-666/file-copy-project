@@ -10,7 +10,13 @@
     "copy-files:with-root": "ts-node src/index.ts --root-folder",
     "copy-files:qa": "ts-node src/index.ts --root-folder=qa-4-free-be",
     "copy-files:list": "ts-node src/index.ts --files-list",
-    "copy-files:be": "ts-node src/index.ts --root-folder=qa-4-free-be --files-list=be-files-list.txt --output-file=be-prompt.txt"
+    "copy-files:skip-default": "ts-node src/index.ts --exclude-default",
+    "copy-files:full": "ts-node src/index.ts --root-folder=qa-4-free-be --files-list=all-files.txt --output-file=project-prompt.txt --exclude-default",
+    "copy-files:custom-exclude": "ts-node src/index.ts --exclude-from=exclude-patterns.txt",
+    "copy-files:be-all": "ts-node src/index.ts --root-folder=qa-4-free-be --files-list=be-files-list.txt --output-file=be-prompt.txt --exclude-from=be-exclude-patterns.txt --ignore-non-existent",
+    "copy-files:virtual": "ts-node src/index.ts --ignore-non-existent",
+    "copy-files:search": "ts-node src/index.ts --base-path",
+    "copy-files:be": "ts-node src/index.ts --root-folder=qa-4-free-be --files-list=be-files-list.txt --output-file=be-prompt.txt --exclude-from=be-exclude-patterns.txt"
   },
   "keywords": ["file", "copy", "typescript"],
   "author": "",
