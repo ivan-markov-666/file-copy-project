@@ -1,0 +1,189 @@
+src/auth/auth.module.ts:
+import { Module, forwardRef } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtStrategy } from './jwt.strategy';
+import { PassportModule } from '@nestjs/passport';
+import { AuthService } from './auth.service';
+import { UserModule } from '../user/user.module'; 
+import { JwtAuthGuard } from './jwt-auth.guard';
+
+@Module({
+  imports: [
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: { expiresIn: '1h' },
+      }),
+    }),
+    forwardRef(() => UserModule), 
+  ],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard],
+  exports: [AuthService, JwtAuthGuard, JwtModule],
+})
+export class AuthModule {}
+
+
+
+src/auth/auth.service.ts:
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { UserService } from '../user/user.service';
+import { RabbitMQProvider } from '../common/providers/rabbitmq.provider';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private readonly jwtService: JwtService,
+    @Inject(forwardRef(() => UserService)) 
+    private readonly userService: UserService,
+    private readonly rabbitMQProvider: RabbitMQProvider, 
+  ) {}
+
+  async validateUser(username: string, password: string) {
+    const user = await this.userService.getUserByUsername(username);
+    if (user && user.password === password) {
+      return user;
+    }
+    return null;
+  }
+
+  async login(user: any) {
+    const payload = { username: user.username, sub: user.id };
+    const token = this.jwtService.sign(payload);
+
+    
+    await this.rabbitMQProvider.sendMessage('user_logged_in', {
+      userId: user.id,
+      username: user.username,
+      timestamp: new Date().toISOString(),
+    });
+
+    return { access_token: token };
+  }
+}
+
+
+
+src/common/common.module.ts:
+import { Module, Global, forwardRef } from '@nestjs/common';
+import { LoggingService } from './services/logging.service';
+import { RpcExceptionFilter } from './filters/rpc-exception.filter';
+import { GlobalExceptionFilter } from './filters/global-exception.filter';
+import { RedisService } from './services/redis.service';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
+import { CacheService } from './services/cache.service';
+import { EventService } from './services/event.service';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { MetricsModule } from './metrics/metrics.module';
+import { MetricsService } from './services/metrics.service';
+import { createElasticsearchClient } from './config/elasticsearch.config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ElasticsearchTestController } from './controllers/elasticsearch-test.controller';
+import { InterceptorTestController } from './controllers/interceptorTest.controller';
+import { PrometheusModule, makeCounterProvider, makeGaugeProvider, makeHistogramProvider } from '@willsoto/nestjs-prometheus';
+import { RabbitMQProvider } from './providers/rabbitmq.provider';
+import { DLQController } from './controllers/dlq.controller';
+import { CleanupService } from './services/cleanup.service';
+import { AuthModule } from '../auth/auth.module';
+
+@Global() 
+@Module({
+  imports: [
+    PrometheusModule,
+    ConfigModule,
+    MetricsModule,
+    
+    ClientsModule.registerAsync([
+      {
+        name: 'RABBITMQ_SERVICE',
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [`amqp://${configService.get('RABBITMQ_DEFAULT_USER')}:${configService.get('RABBITMQ_DEFAULT_PASS')}@localhost:5672`],
+            queue: 'user_queue',
+            queueOptions: {
+              durable: true,
+              arguments: {
+                'x-dead-letter-exchange': 'dlx_exchange', 
+                'x-dead-letter-routing-key': 'dlx_routing_key', 
+              },
+            },
+          },
+        }),
+      },
+    ]),
+    forwardRef(() => AuthModule), 
+  ],
+  controllers: [DLQController, ElasticsearchTestController, InterceptorTestController],
+  providers: [
+    {
+      provide: 'ELASTICSEARCH_CLIENT',
+      useFactory: (configService: ConfigService) => createElasticsearchClient(configService),
+      inject: [ConfigService],
+    },
+    CleanupService,
+    LoggingService,
+    RpcExceptionFilter,
+    GlobalExceptionFilter,
+    RedisService,
+    CacheService,
+    LoggingInterceptor,
+    EventService,
+    MetricsService,
+    RabbitMQProvider,
+    
+    makeCounterProvider({
+      name: 'dlq_message_count', 
+      help: 'Count of messages in Dead Letter Queue',
+      labelNames: ['queue'],
+    }),
+    makeGaugeProvider({
+      name: 'dlq_message_age_seconds', 
+      help: 'Age of messages in Dead Letter Queue in seconds',
+      labelNames: ['queue'],
+    }),
+    
+    makeCounterProvider({
+      name: 'dlq_retry_attempts_total',
+      help: 'Total number of DLQ retry attempts',
+      labelNames: ['queue'],
+    }),
+    makeCounterProvider({
+      name: 'dlq_retry_success_total',
+      help: 'Total number of successful DLQ retries',
+      labelNames: ['queue'],
+    }),
+    makeGaugeProvider({
+      name: 'dlq_message_count_gauge',
+      help: 'Current number of messages in DLQ',
+      labelNames: ['queue'],
+    }),
+    makeHistogramProvider({
+      name: 'PROM_METRIC_USER_REQUEST_DURATION_SECONDS',
+      help: 'Duration of user requests in seconds',
+      buckets: [0.1, 0.5, 1, 2, 5],
+    }),
+  ], 
+  exports: [
+    CleanupService,
+    LoggingService,
+    RpcExceptionFilter,
+    GlobalExceptionFilter,
+    RedisService,
+    CacheService,
+    LoggingInterceptor,
+    EventService,
+    ClientsModule,
+    MetricsService,
+    RabbitMQProvider,
+    PrometheusModule,
+    MetricsModule,
+  ], 
+})
+export class CommonModule {}

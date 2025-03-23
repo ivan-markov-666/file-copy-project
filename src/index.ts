@@ -3,19 +3,21 @@ import * as path from 'path';
 
 // Пътища към файловете
 const rootDir = process.cwd();
-const filesListPath = path.join(rootDir, 'files-list.txt');
-const promptFilePath = path.join(rootDir, 'prompt.txt');
 
 // Опции за изпълнение
 interface Options {
   removeComments: boolean;
   rootFolder: string | null; // За филтриране на път до ROOT папката
+  filesListFile: string; // Файлът със списъка с файлове за обработка
+  outputFile: string; // Изходен файл за записване на резултата
 }
 
 // Глобални опции със стойности по подразбиране
 const options: Options = {
   removeComments: true,
   rootFolder: null,
+  filesListFile: 'files-list.txt', // По подразбиране
+  outputFile: 'prompt.txt', // По подразбиране
 };
 
 /**
@@ -272,9 +274,26 @@ function parseCommandLineArgs() {
     else if (arg.startsWith('--root-folder=')) {
       options.rootFolder = arg.split('=')[1];
     }
+    else if (arg === '--files-list' && i + 1 < args.length) {
+      options.filesListFile = args[i + 1];
+      i++; // Пропускаме следващия аргумент
+    }
+    else if (arg.startsWith('--files-list=')) {
+      options.filesListFile = arg.split('=')[1];
+    }
+    else if (arg === '--output-file' && i + 1 < args.length) {
+      options.outputFile = args[i + 1];
+      i++; // Пропускаме следващия аргумент
+    }
+    else if (arg.startsWith('--output-file=')) {
+      options.outputFile = arg.split('=')[1];
+    }
   }
   
-  // Проверка дали ROOT папката съществува
+  // Показваме информация за настройките
+  console.log(`Входен файл със списъци: '${options.filesListFile}'`);
+  console.log(`Изходен файл: '${options.outputFile}'`);
+  
   if (options.rootFolder && options.rootFolder.trim() !== '') {
     console.log(`ROOT папка зададена на: '${options.rootFolder}'`);
   }
@@ -288,9 +307,13 @@ async function main() {
     // Парсираме аргументите от командния ред
     parseCommandLineArgs();
     
-    // Проверка дали съществува files-list.txt
+    // Определяне на пътищата въз основа на подадените опции
+    const filesListPath = path.join(rootDir, options.filesListFile);
+    const promptFilePath = path.join(rootDir, options.outputFile);
+    
+    // Проверка дали съществува файлът със списъка
     if (!fs.existsSync(filesListPath)) {
-      console.error('Файлът files-list.txt не е намерен в директорията на проекта!');
+      console.error(`Файлът '${options.filesListFile}' не е намерен в директорията на проекта!`);
       process.exit(1);
     }
 
@@ -303,10 +326,10 @@ async function main() {
     console.log(`Намерени ${filesList.length} файла за обработка.`);
     console.log(`Премахване на коментари: ${options.removeComments ? 'Да' : 'Не'}`);
 
-    // Изчиства или създава prompt.txt
+    // Изчиства или създава изходния файл
     fs.writeFileSync(promptFilePath, '');
 
-    // Добавя съдържанието на всеки файл към prompt.txt
+    // Добавя съдържанието на всеки файл към изходния файл
     let combinedContent = '';
     for (const filePath of filesList) {
       const absolutePath = path.isAbsolute(filePath) 
@@ -332,9 +355,9 @@ async function main() {
       }
     }
 
-    // Записва събраното съдържание в prompt.txt
+    // Записва събраното съдържание в изходния файл
     fs.writeFileSync(promptFilePath, combinedContent.trim());
-    console.log(`Всички файлове са копирани успешно в ${promptFilePath}`);
+    console.log(`Всички файлове са копирани успешно в '${options.outputFile}'`);
   } catch (error) {
     console.error('Възникна грешка:', error);
     process.exit(1);
