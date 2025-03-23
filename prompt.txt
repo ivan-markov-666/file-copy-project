@@ -1,4 +1,4 @@
-D:\courses\my\QA\project\be\qa-4-free-be\src\auth\auth.module.ts:
+src/auth/auth.module.ts:
 import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -28,7 +28,7 @@ export class AuthModule {}
 
 
 
-D:\courses\my\QA\project\be\qa-4-free-be\src\auth\auth.service.ts:
+src/auth/auth.service.ts:
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
@@ -68,7 +68,7 @@ export class AuthService {
 
 
 
-D:\courses\my\QA\project\be\qa-4-free-be\src\common\common.module.ts:
+src/common/common.module.ts:
 import { Module, Global, forwardRef } from '@nestjs/common';
 import { LoggingService } from './services/logging.service';
 import { RpcExceptionFilter } from './filters/rpc-exception.filter';

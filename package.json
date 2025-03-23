@@ -6,7 +6,9 @@
   "scripts": {
     "start": "ts-node src/index.ts",
     "copy-files": "ts-node src/index.ts",
-    "copy-files:keep-comments": "ts-node src/index.ts --keep-comments"
+    "copy-files:keep-comments": "ts-node src/index.ts --keep-comments",
+    "copy-files:with-root": "ts-node src/index.ts --root-folder",
+    "copy-files:qa": "ts-node src/index.ts --root-folder=qa-4-free-be"
   },
   "keywords": ["file", "copy", "typescript"],
   "author": "",
