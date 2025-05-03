@@ -1,0 +1,17 @@
+# Това са коментари, които се игнорират
+# Всеки ред е път, който да се пропусне
+
+# Директории, които да се пропускат рекурсивно
+node_modules
+.git
+.vscode
+dist
+build
+coverage
+docs
+
+# Конкретни файлове, които да се пропускат
+README.md
+LICENSE
+package-lock.json
+yarn.lock

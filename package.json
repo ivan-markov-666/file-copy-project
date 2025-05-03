@@ -1,29 +1,17 @@
 {
-  "name": "file-copy-project",
+  "name": "directory-scanner",
   "version": "1.0.0",
-  "description": "Проект за копиране на файлове в един общ файл",
-  "main": "dist/index.js",
+  "description": "Рекурсивно сканира директория и извежда пътищата и съдържанието на файловете",
+  "main": "dist/scanner.js",
   "scripts": {
-    "start": "ts-node src/index.ts",
-    "copy-files": "ts-node src/index.ts",
-    "copy-files:keep-comments": "ts-node src/index.ts --keep-comments",
-    "copy-files:with-root": "ts-node src/index.ts --root-folder",
-    "copy-files:qa": "ts-node src/index.ts --root-folder=qa-4-free-be",
-    "copy-files:list": "ts-node src/index.ts --files-list",
-    "copy-files:skip-default": "ts-node src/index.ts --exclude-default",
-    "copy-files:full": "ts-node src/index.ts --root-folder=qa-4-free-be --files-list=all-files.txt --output-file=project-prompt.txt --exclude-default",
-    "copy-files:custom-exclude": "ts-node src/index.ts --exclude-from=exclude-patterns.txt",
-    "copy-files:be-all": "ts-node src/index.ts --root-folder=qa-4-free-be --files-list=be-files-list.txt --output-file=be-prompt.txt --exclude-from=be-exclude-patterns.txt --ignore-non-existent",
-    "copy-files:virtual": "ts-node src/index.ts --ignore-non-existent",
-    "copy-files:search": "ts-node src/index.ts --base-path",
-    "copy-files:be": "ts-node src/index.ts --root-folder=qa-4-free-be --files-list=be-files-list.txt --output-file=be-prompt.txt --exclude-from=be-exclude-patterns.txt"
+    "scanner": "ts-node src/scanner.ts",
+    "build": "tsc",
+    "start": "node dist/scanner.js"
   },
-  "keywords": ["file", "copy", "typescript"],
-  "author": "",
-  "license": "ISC",
+  "dependencies": {},
   "devDependencies": {
-    "@types/node": "^22.13.11",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.8.2"
+    "@types/node": "^18.15.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.5"
   }
 }
