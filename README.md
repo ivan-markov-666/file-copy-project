@@ -3,7 +3,8 @@
 
 ## Как работи:  
 За да се пусне проекта, трябва да използваме следната команда:  
-> npm run scanner -- --dir "D:\courses\my\QA\project\be\qa-4-free" --blacklist "D:\courses\my\QA\project\be\qa-4-free-files-to-prompt\blacklist.txt" --output "output.txt"  
+> npm run scanner -- --dir "D:\courses\my\QA\project\be\qa-4-free" --blacklist "D:\courses\my\QA\project\be\qa-4-free-files-to-prompt\blacklist.txt" --output "output.txt"
+
 Както се вижда има три вида аргумента които можем да предоставим:  
 '--dir' - трябва да предоставим пътят до проекта, който ще scrap-ваме  
 '--blackkist' - трябва да предоставим  пътя до blacklist.txt файла, където да поставим директориите и файловете които искаме да пропуснем  
