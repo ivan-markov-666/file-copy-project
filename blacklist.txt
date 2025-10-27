@@ -1,7 +1,7 @@
-# Това са коментари, които се игнорират
-# Всеки ред е път, който да се пропусне
+# These are comments that are ignored
+# Each line is a path to be skipped
 
-# Директории, които да се пропускат рекурсивно
+# Directories to be skipped recursively
 node_modules
 .git
 .vscode
@@ -10,7 +10,7 @@ build
 coverage
 docs
 
-# Конкретни файлове, които да се пропускат
+# Specific files to be skipped
 README.md
 LICENSE
 package-lock.json
