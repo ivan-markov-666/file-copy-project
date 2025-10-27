@@ -5,13 +5,15 @@
 node_modules
 .git
 .vscode
+.husky
+.gitignore
 dist
 build
 coverage
 docs
 
+
 # Specific files to be skipped
-README.md
 LICENSE
 package-lock.json
 yarn.lock
