@@ -10,6 +10,11 @@
 
 This project provides an easy way to collect the text content of all files and directories from a project into a single file. The final result can easily be passed to any LLM model to assist with faster code development.
 
+**Note:**  
+- This is a NodeJS-based project. You need to have NodeJS installed on your system.  
+- After cloning the repository, run `npm install` to install all dependencies.  
+- The scanner can process any type of project (not only NodeJS projects).
+
 ## How it works:
 
 To run the project, use the following command:
@@ -62,6 +67,11 @@ npm run scanner -- --help
 
 Dieses Projekt bietet eine einfache Möglichkeit, den Textinhalt aller Dateien und Verzeichnisse aus einem Projekt in eine einzige Datei zu sammeln. Das Endergebnis kann einfach an jedes LLM-Modell weitergegeben werden, um bei der schnelleren Code-Entwicklung zu helfen.
 
+**Hinweis:**  
+- Dieses Projekt basiert auf NodeJS. NodeJS muss auf Ihrem System installiert sein.  
+- Nach dem Klonen des Repositories führen Sie bitte `npm install` aus, um alle Abhängigkeiten zu installieren.  
+- Der Scanner kann beliebige Projekttypen verarbeiten (nicht nur NodeJS-Projekte).
+
 ## Funktionsweise:
 
 Um das Projekt auszuführen, verwenden Sie den folgenden Befehl:
@@ -113,6 +123,11 @@ npm run scanner -- --help
 # Вземане на всички директории и съдържание на файлове от проект и събирането им в един файл
 
 Този проект предоставя улеснен начин за събирането на текстовото съдържание на всички файлове и директории от проекта в един файл. Крайния резултат може лесно да се предаде към някой LLM модел, който да спомогне за по-бързото разработване на код.
+
+**Забележка:**  
+- Проектът е базиран на NodeJS. Необходимо е да имате инсталиран NodeJS на вашата система.  
+- След като клонирате репозиторито, изпълнете `npm install`, за да инсталирате всички зависимости.  
+- Сканиращият инструмент може да обработва всякакви проекти (не само NodeJS проекти).
 
 ## Как работи:
 
