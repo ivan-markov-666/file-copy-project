@@ -2,51 +2,51 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
 
-// Интерфейс за типизиране на грешките
+// Interface for typing errors
 interface FileSystemError extends Error {
   code?: string;
 }
 
 /**
- * Функция за четене на blacklist файла с изключените пътища
- * @param blacklistPath Пътят до blacklist файла
- * @returns Масив с пътищата за изключване
+ * Function to read the blacklist file with excluded paths
+ * @param blacklistPath Path to the blacklist file
+ * @returns Array with paths to exclude
  */
 async function readBlacklist(blacklistPath: string): Promise<string[]> {
   const blacklist: string[] = [];
   
   try {
-    // Проверка дали blacklist файлът съществува
+    // Check if the blacklist file exists
     await fs.promises.access(blacklistPath, fs.constants.R_OK);
     
-    // Създаване на readline интерфейс за четене ред по ред
+    // Create readline interface for reading line by line
     const fileStream = fs.createReadStream(blacklistPath);
     const rl = readline.createInterface({
       input: fileStream,
       crlfDelay: Infinity
     });
     
-    // Обработка на всеки ред
+    // Process each line
     for await (const line of rl) {
       const trimmedLine = line.trim();
       if (trimmedLine && !trimmedLine.startsWith('#')) {
-        // Нормализиране на пътя (да използва единна нотация за разделителите)
+        // Normalize the path (use unified notation for separators)
         blacklist.push(trimmedLine.replace(/\\/g, '/'));
       }
     }
     
-    console.log(`Заредени ${blacklist.length} пътя от черния списък в ${blacklistPath}`);
+    console.log(`Loaded ${blacklist.length} paths from blacklist in ${blacklistPath}`);
   } catch (error: unknown) {
-    // Безопасна обработка на грешка с тип unknown
+    // Safe error handling with unknown type
     if (error instanceof Error) {
       const fsError = error as FileSystemError;
       if (fsError.code === 'ENOENT') {
-        console.warn(`Внимание: Blacklist файлът ${blacklistPath} не съществува. Няма да бъдат изключени пътища.`);
+        console.warn(`Warning: Blacklist file ${blacklistPath} does not exist. No paths will be excluded.`);
       } else {
-        console.warn(`Внимание: Не може да се прочете blacklist файлът ${blacklistPath}: ${fsError.message}`);
+        console.warn(`Warning: Cannot read blacklist file ${blacklistPath}: ${fsError.message}`);
       }
     } else {
-      console.warn(`Внимание: Неочаквана грешка при четене на blacklist файла ${blacklistPath}`);
+      console.warn(`Warning: Unexpected error reading blacklist file ${blacklistPath}`);
     }
   }
   
@@ -54,26 +54,26 @@ async function readBlacklist(blacklistPath: string): Promise<string[]> {
 }
 
 /**
- * Проверява дали даден път трябва да бъде изключен (blacklisted)
- * @param currentPath Текущият път за проверка
- * @param blacklist Списък с изключени пътища
- * @returns true ако пътят трябва да бъде изключен, false в противен случай
+ * Checks whether a given path should be excluded (blacklisted)
+ * @param currentPath Current path to check
+ * @param blacklist List of excluded paths
+ * @returns true if the path should be excluded, false otherwise
  */
 function isBlacklisted(currentPath: string, blacklist: string[]): boolean {
   const normalizedPath = currentPath.replace(/\\/g, '/');
   const pathSegments = normalizedPath.split('/');
   
   for (const item of blacklist) {
-    const normalizedItem = item.replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''); // Премахване на водещи и крайни /
+    const normalizedItem = item.replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''); // Remove leading and trailing /
     
-    // 1. Проверка за директно съвпадение на целия път
+    // 1. Check for direct match of the entire path
     if (normalizedPath === normalizedItem) {
       return true;
     }
     
-    // 2. Подобрена проверка дали елементът е директория или файл
-    // Директория е: а) ако завършва с /, б) ако е включена в директорииБезТочка, 
-    // в) ако не съдържа точка (с изключение на скрити директории като .git)
+    // 2. Improved check whether the item is a directory or file
+    // A directory is: a) if it ends with /, b) if it's included in knownDirectories, 
+    // c) if it doesn't contain a dot (except for hidden directories like .git)
     const knownDirectories = ['node_modules', '.git', '.vscode', 'dist', 'build', 'coverage', 'src', 'test'];
     const endsWithSlash = normalizedItem.endsWith('/');
     const isKnownDirectory = knownDirectories.includes(normalizedItem);
@@ -83,19 +83,19 @@ function isBlacklisted(currentPath: string, blacklist: string[]): boolean {
     const isDirectory = endsWithSlash || isKnownDirectory || isHiddenDir || hasNoExtension;
     
     if (isDirectory) {
-      // 3. Проверка дали пътят започва с елемента от blacklist (стандартен blacklist случай)
+      // 3. Check if the path starts with the item from blacklist (standard blacklist case)
       if (normalizedPath === normalizedItem || 
           normalizedPath.startsWith(normalizedItem + '/')) {
         return true;
       }
       
-      // 4. Проверка дали някой сегмент от пътя съвпада с директорията от blacklist
-      // Това ще се отнася за node_modules в подпапки
+      // 4. Check if any segment of the path matches the directory from blacklist
+      // This will apply to node_modules in subfolders
       if (pathSegments.includes(normalizedItem)) {
         return true;
       }
     } else {
-      // 5. За файлове: проверяваме дали последният сегмент (файловото име) съвпада с blacklist елемента 
+      // 5. For files: check if the last segment (filename) matches the blacklist item
       const fileName = pathSegments[pathSegments.length - 1];
       if (fileName === normalizedItem) {
         return true;
@@ -107,9 +107,9 @@ function isBlacklisted(currentPath: string, blacklist: string[]): boolean {
 }
 
 /**
- * Проверява дали файлът е .env файл
- * @param filePath Пътят до файла
- * @returns true ако файлът е .env файл, false в противен случай
+ * Checks if the file is an .env file
+ * @param filePath Path to the file
+ * @returns true if the file is an .env file, false otherwise
  */
 function isEnvFile(filePath: string): boolean {
   const fileName = path.basename(filePath).toLowerCase();
@@ -117,9 +117,9 @@ function isEnvFile(filePath: string): boolean {
 }
 
 /**
- * Проверява дали файлът е текстов на база на разширението му
- * @param filePath Пътят до файла
- * @returns true ако файлът е текстов, false в противен случай
+ * Checks if the file is a text file based on its extension
+ * @param filePath Path to the file
+ * @returns true if the file is a text file, false otherwise
  */
 function isTextFile(filePath: string): boolean {
   const textExtensions = [
@@ -129,7 +129,7 @@ function isTextFile(filePath: string): boolean {
     '.ps1', '.sql', '.gitignore', '.env', '.config', '.toml', '.dockerfile'
   ];
   
-  // Файлове без разширение, които често са текстови
+  // Files without extension that are often text files
   const textFilenames = [
     'dockerfile', 'makefile', 'jenkinsfile', 'vagrantfile', 'readme', 'license',
     'gemfile', 'rakefile', 'procfile', '.gitignore', '.dockerignore', '.npmignore'
@@ -142,29 +142,29 @@ function isTextFile(filePath: string): boolean {
 }
 
 /**
- * Безопасно четене на текстов файл
- * @param filePath Пътят до файла
- * @returns Съдържанието на файла или съобщение за грешка
+ * Safely read a text file
+ * @param filePath Path to the file
+ * @returns File content or error message
  */
 async function safeReadFile(filePath: string): Promise<string> {
   try {
     return await fs.promises.readFile(filePath, 'utf-8');
   } catch (error: unknown) {
     if (error instanceof Error) {
-      return `[Грешка при четене на файла: ${error.message}]`;
+      return `[Error reading file: ${error.message}]`;
     }
-    return '[Неочаквана грешка при четене на файла]';
+    return '[Unexpected error reading file]';
   }
 }
 
 /**
- * Рекурсивно сканиране на директория
- * @param dirPath Текущата директория за сканиране
- * @param blacklist Списък с изключени пътища
- * @param outputStream Поток за записване на изходния файл
- * @param basePath Базовата директория (началната точка на сканиране)
- * @param stats Статистика за проследяване на прогреса
- * @param includeEnvFiles Флаг дали да се включват .env файлове
+ * Recursively scan a directory
+ * @param dirPath Current directory to scan
+ * @param blacklist List of excluded paths
+ * @param outputStream Stream for writing to output file
+ * @param basePath Base directory (starting point of scanning)
+ * @param stats Statistics for tracking progress
+ * @param includeEnvFiles Flag whether to include .env files
  */
 async function scanDirectory(
   dirPath: string, 
@@ -175,107 +175,107 @@ async function scanDirectory(
   includeEnvFiles: boolean
 ): Promise<void> {
   try {
-    // Вземане на всички елементи в директорията
+    // Get all items in the directory
     const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
     
     for (const entry of entries) {
       const fullPath = path.join(dirPath, entry.name);
-      // Получаване на относителния път спрямо базовата директория
+      // Get the relative path from the base directory
       const relativePath = path.relative(basePath, fullPath).replace(/\\/g, '/');
       
-      // Пропускане ако пътят е в черния списък
+      // Skip if the path is in the blacklist
       if (isBlacklisted(relativePath, blacklist)) {
         stats.skipped++;
         if (process.env.DEBUG) {
-          console.log(`Пропускане на път от черния списък: ${relativePath}`);
+          console.log(`Skipping blacklisted path: ${relativePath}`);
         }
         continue;
       }
       
-      // Записване на пътя във файла
+      // Write the path to file
       outputStream.write(`${relativePath}\n`);
       
       if (entry.isDirectory()) {
         stats.dirs++;
-        // Показване на прогрес на всеки 100 директории
+        // Show progress every 100 directories
         if (stats.dirs % 100 === 0) {
-          console.log(`Прогрес: ${stats.dirs} директории, ${stats.files} файла обработени, ${stats.skipped} пропуснати, ${stats.envFiles} .env файла`);
+          console.log(`Progress: ${stats.dirs} directories, ${stats.files} files processed, ${stats.skipped} skipped, ${stats.envFiles} .env files`);
         }
-        // Рекурсивно сканиране на поддиректории
+        // Recursively scan subdirectories
         await scanDirectory(fullPath, blacklist, outputStream, basePath, stats, includeEnvFiles);
       } else {
         stats.files++;
         
-        // Проверка дали файлът е .env файл
+        // Check if the file is an .env file
         const isEnv = isEnvFile(fullPath);
         
         if (isEnv) {
           stats.envFiles++;
           
-          // Пропускане на .env файла ако не трябва да се включват
+          // Skip the .env file if it should not be included
           if (!includeEnvFiles) {
-            outputStream.write(`[.env файл - съдържанието е пропуснато съгласно настройките]\n\n`);
+            outputStream.write(`[.env file - content skipped according to settings]\n\n`);
             if (process.env.DEBUG) {
-              console.log(`Пропускане на .env файл: ${relativePath}`);
+              console.log(`Skipping .env file: ${relativePath}`);
             }
             continue;
           }
           
-          // Ако е .env файл и е включена опцията - директно четем и добавяме,
-          // без да проверяваме дали е текстов файл
+          // If it's an .env file and the option is enabled - read and add directly,
+          // without checking if it's a text file
           try {
             const content = await safeReadFile(fullPath);
-            outputStream.write(`### Съдържание на .env файл ###\n${content}\n### Край на .env файл ###\n\n`);
+            outputStream.write(`### .env file content ###\n${content}\n### End of .env file ###\n\n`);
             if (process.env.DEBUG) {
-              console.log(`Включен .env файл: ${relativePath}`);
+              console.log(`Included .env file: ${relativePath}`);
             }
           } catch (error: unknown) {
             if (error instanceof Error) {
-              outputStream.write(`[Грешка при четене на .env файл: ${error.message}]\n\n`);
+              outputStream.write(`[Error reading .env file: ${error.message}]\n\n`);
             } else {
-              outputStream.write(`[Неочаквана грешка при четене на .env файл]\n\n`);
+              outputStream.write(`[Unexpected error reading .env file]\n\n`);
             }
           }
-          continue; // Продължаваме със следващия файл/директория
+          continue; // Continue with the next file/directory
         }
         
-        // За всички други файлове (не .env) - проверяваме дали са текстови
+        // For all other files (not .env) - check if they are text files
         if (!isTextFile(fullPath)) {
-          outputStream.write(`[Бинарно или не-текстово съдържание не е показано]\n\n`);
+          outputStream.write(`[Binary or non-text content not shown]\n\n`);
           continue;
         }
         
-        // Четене и записване на съдържанието на файла (не .env)
+        // Read and write file content (not .env)
         try {
           const content = await safeReadFile(fullPath);
           outputStream.write(`${content}\n\n`);
         } catch (error: unknown) {
           if (error instanceof Error) {
-            outputStream.write(`[Грешка при четене на съдържанието: ${error.message}]\n\n`);
+            outputStream.write(`[Error reading content: ${error.message}]\n\n`);
           } else {
-            outputStream.write(`[Неочаквана грешка при четене на съдържанието]\n\n`);
+            outputStream.write(`[Unexpected error reading content]\n\n`);
           }
         }
       }
     }
   } catch (error: unknown) {
     if (error instanceof Error) {
-      console.error(`Грешка при сканиране на директория ${dirPath}: ${error.message}`);
+      console.error(`Error scanning directory ${dirPath}: ${error.message}`);
     } else {
-      console.error(`Неочаквана грешка при сканиране на директория ${dirPath}`);
+      console.error(`Unexpected error scanning directory ${dirPath}`);
     }
   }
 }
 
 /**
- * Парсване на аргументите от командния ред
- * @returns Обект с целевата директория, пътя до blacklist, пътя до изходния файл и флаг за .env файлове
+ * Parse command line arguments
+ * @returns Object with target directory, blacklist path, output path, and .env files flag
  */
 function parseArgs(): { targetDir: string, blacklistPath: string, outputPath: string, includeEnvFiles: boolean } {
   let targetDir = process.cwd();
   let blacklistPath = '';
   let outputPath = '';
-  let includeEnvFiles = false;  // По подразбиране .env файловете не се включват
+  let includeEnvFiles = false;  // By default .env files are not included
   
   for (let i = 2; i < process.argv.length; i++) {
     const arg = process.argv[i];
@@ -287,23 +287,23 @@ function parseArgs(): { targetDir: string, blacklistPath: string, outputPath: st
     } else if (arg === '--output' || arg === '-o') {
       outputPath = process.argv[++i] || '';
     } else if (arg === '--env' || arg === '-e') {
-      includeEnvFiles = true;  // Флаг за включване на .env файлове
+      includeEnvFiles = true;  // Flag to include .env files
     } else if (arg === '--help' || arg === '-h') {
       console.log(`
-Скенер на директории - Рекурсивно сканира директория и извежда пътищата и съдържанието на файловете
+Directory Scanner - Recursively scans a directory and outputs paths and file contents
 
-Употреба:
-  npm run scanner -- [опции]
+Usage:
+  npm run scanner -- [options]
 
-Опции:
-  --dir, -d        Целева директория за сканиране (по подразбиране: текущата директория)
-  --blacklist, -b  Път до blacklist файла (по подразбиране: <целева_директория>/blacklist.txt)
-  --output, -o     Път до изходния файл (по подразбиране: <целева_директория>/project_files.txt)
-  --env, -e        Включване на съдържанието на .env файловете (по подразбиране: изключено)
-  --help, -h       Показва това помощно съобщение
+Options:
+  --dir, -d        Target directory to scan (default: current directory)
+  --blacklist, -b  Path to blacklist file (default: <target_directory>/blacklist.txt)
+  --output, -o     Path to output file (default: <target_directory>/project_files.txt)
+  --env, -e        Include content of .env files (default: disabled)
+  --help, -h       Show this help message
   
-Променливи на средата:
-  DEBUG=1          Включва допълнителен дебъг изход
+Environment variables:
+  DEBUG=1          Enable additional debug output
 `);
       process.exit(0);
     } else if (!arg.startsWith('-')) {
@@ -311,7 +311,7 @@ function parseArgs(): { targetDir: string, blacklistPath: string, outputPath: st
     }
   }
   
-  // Използване на стойности по подразбиране, ако не са указани
+  // Use default values if not specified
   if (!blacklistPath) {
     blacklistPath = path.join(targetDir, 'blacklist.txt');
   }
@@ -324,28 +324,28 @@ function parseArgs(): { targetDir: string, blacklistPath: string, outputPath: st
 }
 
 /**
- * Главна функция на програмата
+ * Main function of the program
  */
 async function main() {
   const { targetDir, blacklistPath, outputPath, includeEnvFiles } = parseArgs();
   
-  console.log(`Стартиране на сканиране на директория: ${targetDir}`);
-  console.log(`Използване на blacklist от: ${blacklistPath}`);
-  console.log(`Изходът ще бъде записан в: ${outputPath}`);
-  console.log(`.env файлове: ${includeEnvFiles ? 'ще бъдат включени' : 'няма да бъдат включени'}`);
+  console.log(`Starting directory scan: ${targetDir}`);
+  console.log(`Using blacklist from: ${blacklistPath}`);
+  console.log(`Output will be written to: ${outputPath}`);
+  console.log(`.env files: ${includeEnvFiles ? 'will be included' : 'will not be included'}`);
   
-  // Четене на blacklist списъка
+  // Read the blacklist
   const blacklist = await readBlacklist(blacklistPath);
   
-  // Създаване на поток за записване на изходния файл
+  // Create stream for writing to output file
   const outputStream = fs.createWriteStream(outputPath);
   
-  // Статистика за проследяване на прогреса
+  // Statistics for tracking progress
   const stats = { dirs: 0, files: 0, skipped: 0, envFiles: 0 };
   
   try {
-    // Стартиране на рекурсивното сканиране
-    console.log('Стартиране на сканирането...');
+    // Start recursive scanning
+    console.log('Starting scan...');
     const startTime = Date.now();
     
     await scanDirectory(targetDir, blacklist, outputStream, targetDir, stats, includeEnvFiles);
@@ -354,31 +354,31 @@ async function main() {
     const duration = (endTime - startTime) / 1000;
     
     console.log(`
-Сканирането завърши за ${duration.toFixed(2)} секунди:
-- Обработени директории: ${stats.dirs}
-- Обработени файлове: ${stats.files}
-- Пропуснати елементи (blacklist): ${stats.skipped}
-- Намерени .env файлове: ${stats.envFiles} ${includeEnvFiles ? '(включени)' : '(пропуснати)'}
-- Изходът е записан в: ${outputPath}
+Scan completed in ${duration.toFixed(2)} seconds:
+- Directories processed: ${stats.dirs}
+- Files processed: ${stats.files}
+- Items skipped (blacklist): ${stats.skipped}
+- .env files found: ${stats.envFiles} ${includeEnvFiles ? '(included)' : '(skipped)'}
+- Output written to: ${outputPath}
 `);
   } catch (error: unknown) {
     if (error instanceof Error) {
-      console.error(`Грешка по време на сканирането: ${error.message}`);
+      console.error(`Error during scanning: ${error.message}`);
     } else {
-      console.error(`Неочаквана грешка по време на сканирането`);
+      console.error(`Unexpected error during scanning`);
     }
   } finally {
-    // Затваряне на изходния поток
+    // Close the output stream
     outputStream.end();
   }
 }
 
-// Изпълнение на програмата
+// Execute the program
 main().catch((error: unknown) => {
   if (error instanceof Error) {
-    console.error(`Фатална грешка: ${error.message}`);
+    console.error(`Fatal error: ${error.message}`);
   } else {
-    console.error(`Неочаквана фатална грешка`);
+    console.error(`Unexpected fatal error`);
   }
   process.exit(1);
 });
