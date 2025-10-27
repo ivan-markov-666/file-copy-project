@@ -1,7 +1,7 @@
 {
   "name": "directory-scanner",
   "version": "1.0.0",
-  "description": "Рекурсивно сканира директория и извежда пътищата и съдържанието на файловете",
+  "description": "Recursively scans a directory and outputs the paths and contents of files",
   "main": "dist/scanner.js",
   "scripts": {
     "scanner": "ts-node src/scanner.ts",
