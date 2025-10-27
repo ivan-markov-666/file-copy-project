@@ -4,12 +4,12 @@
 
 # Collecting All Directories and File Contents from a Project into a Single File
 
-This project provides an easy way to collect the text content of all files and directories from a project into a single file. The final result can easily be passed to any LLM model to assist with faster code development.
+This project provides an easy way to collect the text content of all files and directories from a project into a single file. The final result can easily be passed to any LLM to accelerate code development.
 
 **Note:**  
-- This is a NodeJS-based project. You need to have NodeJS installed on your system.  
+- This is a NodeJS-based project. You need Node.js installed on your system.  
 - After cloning the repository, run `npm install` to install all dependencies.  
-- The scanner can process any type of project (not only NodeJS projects).
+- The scanner can process any project (not only NodeJS projects).
 
 ## How it works:
 
@@ -21,10 +21,10 @@ npm run scanner -- --dir "C:\projects\mproject-root-folder" --blacklist "C:\proj
 As you can see, there are four types of arguments we can provide:
 
 - `--dir` or `-d` - provide the path to the project we want to scan
-- `--blacklist` or `-b` - provide the path to the blacklist.txt file where we can specify directories and files to skip
+- `--blacklist` or `-b` - provide the path to the blacklist.txt file, where we can specify directories and files to skip
 - `--output` or `-o` - provide the path to the file where we want to save the content of all files and directories
-- `--env` or `-e` - flag that indicates whether to include the content of .env files (by default they are skipped)
-- `--strip-comments` or `-s` - flag that indicates whether to remove comments from the content of files (by default they are not removed)
+- `--env` or `-e` - flag that indicates whether to include the content of .env files (by default, they are skipped)
+- `--strip-comments` or `-s` - flag that indicates whether to remove comments from the content of files (by default, they are not removed)
 
 
 It can remove comments for the following languages: 
@@ -69,3 +69,7 @@ To see all available options, run:
 ```
 npm run scanner -- --help
 ```
+
+## !!! WARNING !!!
+
+The command may NOT work in PowerShell. Please use the command prompt or bash.
