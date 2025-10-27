@@ -19,6 +19,9 @@ This project provides an easy way to collect the text content of all files and d
 
 To run the project, use the following command:
 ```
+npm run scanner -- --dir "C:\projects\mproject-root-folder" --blacklist "C:\projects\mproject-root-folder\blacklist.txt" --output "output.txt" --env
+```
+```
 npm run scanner -- --dir "D:\courses\my\QA\project\be\qa-4-free" --blacklist "D:\courses\my\QA\project\be\qa-4-free-files-to-prompt\blacklist.txt" --output "output.txt" --env
 ```
 
@@ -33,12 +36,12 @@ As you can see, there are four types of arguments we can provide:
 
 ### Standard scanning (without .env files):
 ```
-npm run scanner -- --dir "D:\my-project" --blacklist "blacklist.txt" --output "output.txt"
+npm run scanner -- --dir "C:\projects\mproject-root-folder" --blacklist "blacklist.txt" --output "output.txt"
 ```
 
 ### Scanning with .env files included:
 ```
-npm run scanner -- --dir "D:\my-project" --blacklist "blacklist.txt" --output "output.txt" --env
+npm run scanner -- --dir "C:\projects\mproject-root-folder" --blacklist "blacklist.txt" --output "output.txt" --env
 ```
 
 ## .env File Processing:
@@ -76,7 +79,7 @@ Dieses Projekt bietet eine einfache Möglichkeit, den Textinhalt aller Dateien u
 
 Um das Projekt auszuführen, verwenden Sie den folgenden Befehl:
 ```
-npm run scanner -- --dir "D:\courses\my\QA\project\be\qa-4-free" --blacklist "D:\courses\my\QA\project\be\qa-4-free-files-to-prompt\blacklist.txt" --output "output.txt" --env
+npm run scanner -- --dir "C:\projects\mproject-root-folder" --blacklist "C:\projects\mproject-root-folder\blacklist.txt" --output "output.txt" --env
 ```
 
 Wie Sie sehen können, gibt es vier Arten von Argumenten, die wir bereitstellen können:
@@ -90,12 +93,12 @@ Wie Sie sehen können, gibt es vier Arten von Argumenten, die wir bereitstellen 
 
 ### Standardscannen (ohne .env-Dateien):
 ```
-npm run scanner -- --dir "D:\my-project" --blacklist "blacklist.txt" --output "output.txt"
+npm run scanner -- --dir "C:\projects\mproject-root-folder" --blacklist "blacklist.txt" --output "output.txt"
 ```
 
 ### Scannen mit einbezogenen .env-Dateien:
 ```
-npm run scanner -- --dir "D:\my-project" --blacklist "blacklist.txt" --output "output.txt" --env
+npm run scanner -- --dir "C:\projects\mproject-root-folder" --blacklist "blacklist.txt" --output "output.txt" --env
 ```
 
 ## .env-Datei-Verarbeitung:
@@ -133,7 +136,7 @@ npm run scanner -- --help
 
 За да се пусне проекта, трябва да използваме следната команда:
 ```
-npm run scanner -- --dir "D:\courses\my\QA\project\be\qa-4-free" --blacklist "D:\courses\my\QA\project\be\qa-4-free-files-to-prompt\blacklist.txt" --output "output.txt" --env
+npm run scanner -- --dir "C:\projects\mproject-root-folder" --blacklist "C:\projects\mproject-root-folder\blacklist.txt" --output "output.txt" --env
 ```
 
 Както се вижда има четири вида аргумента които можем да предоставим:
@@ -147,12 +150,12 @@ npm run scanner -- --dir "D:\courses\my\QA\project\be\qa-4-free" --blacklist "D:
 
 ### Стандартно сканиране (без .env файлове):
 ```
-npm run scanner -- --dir "D:\my-project" --blacklist "blacklist.txt" --output "output.txt"
+npm run scanner -- --dir "C:\projects\mproject-root-folder" --blacklist "blacklist.txt" --output "output.txt"
 ```
 
 ### Сканиране с включени .env файлове:
 ```
-npm run scanner -- --dir "D:\my-project" --blacklist "blacklist.txt" --output "output.txt" --env
+npm run scanner -- --dir "C:\projects\mproject-root-folder" --blacklist "blacklist.txt" --output "output.txt" --env
 ```
 
 ## Обработка на .env файлове:
