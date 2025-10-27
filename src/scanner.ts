@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
+import { stripComments, getFileType, isSupported, getFileTypeName, FileType } from './comment-stripper';
 
 // Interface for typing errors
 interface FileSystemError extends Error {
@@ -165,14 +166,16 @@ async function safeReadFile(filePath: string): Promise<string> {
  * @param basePath Base directory (starting point of scanning)
  * @param stats Statistics for tracking progress
  * @param includeEnvFiles Flag whether to include .env files
+ * @param stripCommentsEnabled Flag whether to strip comments from files
  */
 async function scanDirectory(
   dirPath: string, 
   blacklist: string[], 
   outputStream: fs.WriteStream,
   basePath: string,
-  stats: { dirs: number, files: number, skipped: number, envFiles: number },
-  includeEnvFiles: boolean
+  stats: { dirs: number, files: number, skipped: number, envFiles: number, commentsStripped: number },
+  includeEnvFiles: boolean,
+  stripCommentsEnabled: boolean
 ): Promise<void> {
   try {
     // Get all items in the directory
@@ -199,10 +202,10 @@ async function scanDirectory(
         stats.dirs++;
         // Show progress every 100 directories
         if (stats.dirs % 100 === 0) {
-          console.log(`Progress: ${stats.dirs} directories, ${stats.files} files processed, ${stats.skipped} skipped, ${stats.envFiles} .env files`);
+          console.log(`Progress: ${stats.dirs} directories, ${stats.files} files processed, ${stats.skipped} skipped, ${stats.envFiles} .env files, ${stats.commentsStripped} comments stripped`);
         }
         // Recursively scan subdirectories
-        await scanDirectory(fullPath, blacklist, outputStream, basePath, stats, includeEnvFiles);
+        await scanDirectory(fullPath, blacklist, outputStream, basePath, stats, includeEnvFiles, stripCommentsEnabled);
       } else {
         stats.files++;
         
@@ -223,6 +226,7 @@ async function scanDirectory(
           
           // If it's an .env file and the option is enabled - read and add directly,
           // without checking if it's a text file
+          // Note: Comments are NOT stripped from .env files
           try {
             const content = await safeReadFile(fullPath);
             outputStream.write(`### .env file content ###\n${content}\n### End of .env file ###\n\n`);
@@ -247,7 +251,28 @@ async function scanDirectory(
         
         // Read and write file content (not .env)
         try {
-          const content = await safeReadFile(fullPath);
+          let content = await safeReadFile(fullPath);
+          
+          // Strip comments if enabled
+          if (stripCommentsEnabled) {
+            const fileType = getFileType(fullPath);
+            
+            if (isSupported(fileType)) {
+              const originalLength = content.length;
+              content = stripComments(content, fileType);
+              const newLength = content.length;
+              
+              if (originalLength !== newLength) {
+                stats.commentsStripped++;
+                if (process.env.DEBUG) {
+                  console.log(`Stripped comments from ${relativePath} (${getFileTypeName(fileType)}): ${originalLength} -> ${newLength} bytes`);
+                }
+              }
+            } else if (process.env.DEBUG) {
+              console.log(`Skipping comment stripping for ${relativePath} (unsupported file type)`);
+            }
+          }
+          
           outputStream.write(`${content}\n\n`);
         } catch (error: unknown) {
           if (error instanceof Error) {
@@ -269,13 +294,20 @@ async function scanDirectory(
 
 /**
  * Parse command line arguments
- * @returns Object with target directory, blacklist path, output path, and .env files flag
+ * @returns Object with target directory, blacklist path, output path, .env files flag, and strip comments flag
  */
-function parseArgs(): { targetDir: string, blacklistPath: string, outputPath: string, includeEnvFiles: boolean } {
+function parseArgs(): { 
+  targetDir: string, 
+  blacklistPath: string, 
+  outputPath: string, 
+  includeEnvFiles: boolean,
+  stripCommentsEnabled: boolean 
+} {
   let targetDir = process.cwd();
   let blacklistPath = '';
   let outputPath = '';
   let includeEnvFiles = false;  // By default .env files are not included
+  let stripCommentsEnabled = false;  // By default comments are not stripped
   
   for (let i = 2; i < process.argv.length; i++) {
     const arg = process.argv[i];
@@ -288,6 +320,8 @@ function parseArgs(): { targetDir: string, blacklistPath: string, outputPath: st
       outputPath = process.argv[++i] || '';
     } else if (arg === '--env' || arg === '-e') {
       includeEnvFiles = true;  // Flag to include .env files
+    } else if (arg === '--strip-comments' || arg === '-s') {
+      stripCommentsEnabled = true;  // Flag to strip comments from files
     } else if (arg === '--help' || arg === '-h') {
       console.log(`
 Directory Scanner - Recursively scans a directory and outputs paths and file contents
@@ -296,11 +330,23 @@ Usage:
   npm run scanner -- [options]
 
 Options:
-  --dir, -d        Target directory to scan (default: current directory)
-  --blacklist, -b  Path to blacklist file (default: <target_directory>/blacklist.txt)
-  --output, -o     Path to output file (default: <target_directory>/project_files.txt)
-  --env, -e        Include content of .env files (default: disabled)
-  --help, -h       Show this help message
+  --dir, -d             Target directory to scan (default: current directory)
+  --blacklist, -b       Path to blacklist file (default: <target_directory>/blacklist.txt)
+  --output, -o          Path to output file (default: <target_directory>/project_files.txt)
+  --env, -e             Include content of .env files (default: disabled)
+  --strip-comments, -s  Strip comments from supported file types (default: disabled)
+  --help, -h            Show this help message
+
+Supported file types for comment stripping:
+  - JavaScript (.js, .jsx)
+  - TypeScript (.ts, .tsx)
+  - Java (.java)
+  - C# (.cs)
+  - PHP (.php)
+  - SQL (.sql)
+  - JSON (.json)
+
+Note: Python (.py) and Ruby (.rb) files are NOT supported for comment stripping.
   
 Environment variables:
   DEBUG=1          Enable additional debug output
@@ -320,19 +366,20 @@ Environment variables:
     outputPath = path.join(targetDir, 'project_files.txt');
   }
   
-  return { targetDir, blacklistPath, outputPath, includeEnvFiles };
+  return { targetDir, blacklistPath, outputPath, includeEnvFiles, stripCommentsEnabled };
 }
 
 /**
  * Main function of the program
  */
 async function main() {
-  const { targetDir, blacklistPath, outputPath, includeEnvFiles } = parseArgs();
+  const { targetDir, blacklistPath, outputPath, includeEnvFiles, stripCommentsEnabled } = parseArgs();
   
   console.log(`Starting directory scan: ${targetDir}`);
   console.log(`Using blacklist from: ${blacklistPath}`);
   console.log(`Output will be written to: ${outputPath}`);
   console.log(`.env files: ${includeEnvFiles ? 'will be included' : 'will not be included'}`);
+  console.log(`Comment stripping: ${stripCommentsEnabled ? 'enabled' : 'disabled'}`);
   
   // Read the blacklist
   const blacklist = await readBlacklist(blacklistPath);
@@ -341,14 +388,14 @@ async function main() {
   const outputStream = fs.createWriteStream(outputPath);
   
   // Statistics for tracking progress
-  const stats = { dirs: 0, files: 0, skipped: 0, envFiles: 0 };
+  const stats = { dirs: 0, files: 0, skipped: 0, envFiles: 0, commentsStripped: 0 };
   
   try {
     // Start recursive scanning
     console.log('Starting scan...');
     const startTime = Date.now();
     
-    await scanDirectory(targetDir, blacklist, outputStream, targetDir, stats, includeEnvFiles);
+    await scanDirectory(targetDir, blacklist, outputStream, targetDir, stats, includeEnvFiles, stripCommentsEnabled);
     
     const endTime = Date.now();
     const duration = (endTime - startTime) / 1000;
@@ -359,6 +406,7 @@ Scan completed in ${duration.toFixed(2)} seconds:
 - Files processed: ${stats.files}
 - Items skipped (blacklist): ${stats.skipped}
 - .env files found: ${stats.envFiles} ${includeEnvFiles ? '(included)' : '(skipped)'}
+- Files with comments stripped: ${stats.commentsStripped}
 - Output written to: ${outputPath}
 `);
   } catch (error: unknown) {
