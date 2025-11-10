@@ -24,20 +24,7 @@ As you can see, there are four types of arguments we can provide:
 - `--blacklist` or `-b` - provide the path to the blacklist.txt file where we can specify directories and files to skip
 - `--output` or `-o` - provide the path to the file where we want to save the content of all files and directories
 - `--env` or `-e` - flag that indicates whether to include the content of .env files (by default they are skipped)
-- `--strip-comments` or `-s` - flag that indicates whether to remove comments from the content of files (by default they are not removed)
 
-
-It can remove comments for the following languages: 
-
-| # | Language | Extension | Package | Remove |
-|---|------|-----------|-------|----------|
-| 1 | **JavaScript** | `.js`, `.jsx` | decomment | `//`, `/* */` |
-| 2 | **TypeScript** | `.ts`, `.tsx` | decomment | `//`, `/* */`, JSDoc |
-| 3 | **Java** | `.java` | decomment | `//`, `/* */`, JavaDoc |
-| 4 | **C#** | `.cs` | decomment | `//`, `/* */`, XML docs |
-| 5 | **PHP** | `.php` | decomment | `//`, `/* */`, `#` |
-| 6 | **SQL** | `.sql` | Custom regex | `--`, `/* */` |
-| 7 | **JSON** | `.json` | strip-json-comments | `//`, `/* */` |
 ---
 
 ## Usage Examples:
@@ -47,7 +34,7 @@ It can remove comments for the following languages:
 npm run scanner -- --dir "C:\projects\mproject-root-folder" --blacklist "blacklist.txt" --output "output.txt"
 ```
 
-### Scanning with .env files included:
+### Scanning with .env files included (using -e or --env flag):
 ```
 npm run scanner -- --dir "C:\projects\mproject-root-folder" --blacklist "blacklist.txt" --output "output.txt" --env
 ```
