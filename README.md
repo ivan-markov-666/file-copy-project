@@ -9,21 +9,21 @@ This project provides an easy way to collect the text content of all files and d
 **Note:**  
 - This is a NodeJS-based project. You need to have NodeJS installed on your system.  
 - After cloning the repository, run `npm install` to install all dependencies.  
-- The scanner can process any project (not only NodeJS projects).
+- The scanner can process any type of project (not only NodeJS projects).
 
 ## How it works:
 
 To run the project, use the following command:
 ```
-npm run scanner -- --dir "C:\projects\mproject-root-folder" --blacklist "C:\projects\mproject-root-folder\blacklist.txt" --output "output.txt" --env --strip-comments
+npm run scanner -- --dir "C:\projects\mproject-root-folder" --blacklist "C:\projects\mproject-root-folder\blacklist.txt" --output "output.txt" --env
 ```
 
 As you can see, there are four types of arguments we can provide:
 
 - `--dir` or `-d` - provide the path to the project we want to scan
-- `--blacklist` or `-b` - provide the path to the blacklist.txt file, where we can specify directories and files to skip
+- `--blacklist` or `-b` - provide the path to the blacklist.txt file where we can specify directories and files to skip
 - `--output` or `-o` - provide the path to the file where we want to save the content of all files and directories
-- `--env` or `-e` - flag that indicates whether to include the content of .env files (by default, they are skipped)
+- `--env` or `-e` - flag that indicates whether to include the content of .env files (by default they are skipped)
 
 ---
 
