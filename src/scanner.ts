@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
+import { stripCommentsFromFile } from './comment-stripper';
 
 // Interface for typing errors
 interface FileSystemError extends Error {
@@ -167,12 +168,13 @@ async function safeReadFile(filePath: string): Promise<string> {
  * @param includeEnvFiles Flag whether to include .env files
  */
 async function scanDirectory(
-  dirPath: string, 
-  blacklist: string[], 
+  dirPath: string,
+  blacklist: string[],
   outputStream: fs.WriteStream,
   basePath: string,
   stats: { dirs: number, files: number, skipped: number, envFiles: number },
-  includeEnvFiles: boolean
+  includeEnvFiles: boolean,
+  stripComments: boolean
 ): Promise<void> {
   try {
     // Get all items in the directory
@@ -202,7 +204,7 @@ async function scanDirectory(
           console.log(`Progress: ${stats.dirs} directories, ${stats.files} files processed, ${stats.skipped} skipped, ${stats.envFiles} .env files`);
         }
         // Recursively scan subdirectories
-        await scanDirectory(fullPath, blacklist, outputStream, basePath, stats, includeEnvFiles);
+        await scanDirectory(fullPath, blacklist, outputStream, basePath, stats, includeEnvFiles, stripComments);
       } else {
         stats.files++;
         
@@ -248,7 +250,10 @@ async function scanDirectory(
         
         // Read and write file content (not .env)
         try {
-          const content = await safeReadFile(fullPath);
+          let content = await safeReadFile(fullPath);
+          if (stripComments) {
+            content = stripCommentsFromFile(content, fullPath);
+          }
           outputStream.write(`${content}\n\n`);
         } catch (error: unknown) {
           if (error instanceof Error) {
@@ -272,16 +277,18 @@ async function scanDirectory(
  * Parse command line arguments
  * @returns Object with target directory, blacklist path, output path, and .env files flag
  */
-function parseArgs(): { 
-  targetDir: string, 
-  blacklistPath: string, 
-  outputPath: string, 
-  includeEnvFiles: boolean
+function parseArgs(): {
+  targetDir: string,
+  blacklistPath: string,
+  outputPath: string,
+  includeEnvFiles: boolean,
+  stripComments: boolean
 } {
   let targetDir = process.cwd();
   let blacklistPath = '';
   let outputPath = '';
   let includeEnvFiles = false;  // By default .env files are not included
+  let stripComments = false;    // By default comments are kept
   
   for (let i = 2; i < process.argv.length; i++) {
     const arg = process.argv[i];
@@ -294,6 +301,8 @@ function parseArgs(): {
       outputPath = process.argv[++i] || '';
     } else if (arg === '--env' || arg === '-e') {
       includeEnvFiles = true;  // Flag to include .env files
+    } else if (arg === '--strip-comments' || arg === '-s') {
+      stripComments = true;    // Flag to strip comments from code
     } else if (arg === '--help' || arg === '-h') {
       console.log(`
 Directory Scanner - Recursively scans a directory and outputs paths and file contents
@@ -306,6 +315,7 @@ Options:
   --blacklist, -b       Path to blacklist file (default: <target_directory>/blacklist.txt)
   --output, -o          Path to output file (default: <target_directory>/project_files.txt)
   --env, -e             Include content of .env files (default: disabled)
+  --strip-comments, -s  Strip comments from source code files (default: disabled)
   --help, -h            Show this help message
 
 Environment variables:
@@ -326,19 +336,20 @@ Environment variables:
     outputPath = path.join(targetDir, 'project_files.txt');
   }
   
-  return { targetDir, blacklistPath, outputPath, includeEnvFiles };
+  return { targetDir, blacklistPath, outputPath, includeEnvFiles, stripComments };
 }
 
 /**
  * Main function of the program
  */
 async function main() {
-  const { targetDir, blacklistPath, outputPath, includeEnvFiles } = parseArgs();
-  
+  const { targetDir, blacklistPath, outputPath, includeEnvFiles, stripComments } = parseArgs();
+
   console.log(`Starting directory scan: ${targetDir}`);
   console.log(`Using blacklist from: ${blacklistPath}`);
   console.log(`Output will be written to: ${outputPath}`);
   console.log(`.env files: ${includeEnvFiles ? 'will be included' : 'will not be included'}`);
+  console.log(`Comment stripping: ${stripComments ? 'enabled' : 'disabled'}`);
   
   // Read the blacklist
   const blacklist = await readBlacklist(blacklistPath);
@@ -354,7 +365,7 @@ async function main() {
     console.log('Starting scan...');
     const startTime = Date.now();
     
-    await scanDirectory(targetDir, blacklist, outputStream, targetDir, stats, includeEnvFiles);
+    await scanDirectory(targetDir, blacklist, outputStream, targetDir, stats, includeEnvFiles, stripComments);
     
     const endTime = Date.now();
     const duration = (endTime - startTime) / 1000;
